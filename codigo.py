@@ -2,17 +2,24 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import numpy as np
 import random
+from scipy.integrate import odeint
 
-n = 20  
-prob_spread = 0.4
-initial_fire = [(n//2, n//2)] 
+# Parâmetros da simulação em rede
+n = 20
+prob_spread = 0.45
+initial_fire = [(n//2, n//2)]
 
 G = nx.grid_2d_graph(n, n)
 status = {node: "green" for node in G.nodes()}
 for node in initial_fire:
     status[node] = "burning"
 
-color_map = {"green": "green", "burning": "red", "burnt": "black"}
+color_map = {
+    "green": "#2ecc71",     # verde vivo (vegetação)
+    "burning": "#e74c3c",   # vermelho brilhante (fogo ativo)
+    "burnt": "#2c3e50"      # cinza escuro (área queimada)
+}
+
 
 def update_fire(status, G, prob_spread):
     new_status = status.copy()
@@ -25,13 +32,14 @@ def update_fire(status, G, prob_spread):
     return new_status
 
 def simulate_fire(G, status, prob_spread, max_steps=100):
-    results = []
+    burnt_fraction = []  # Para comparar com EDO
     for step in range(max_steps):
-        colors = [color_map[status[node]] for node in G.nodes()]
-        results.append((step, dict(status)))
+        num_burnt = sum(1 for s in status.values() if s == "burnt")
+        burnt_fraction.append(num_burnt / len(G.nodes()))
         
+        colors = [color_map[status[node]] for node in G.nodes()]
         plt.figure(figsize=(6, 6))
-        nx.draw(G, pos={node: node for node in G.nodes()}, 
+        nx.draw(G, pos={node: node for node in G.nodes()},
                 node_color=colors, with_labels=False, node_size=30)
         plt.title(f"Etapa {step}")
         plt.axis('off')
@@ -40,12 +48,35 @@ def simulate_fire(G, status, prob_spread, max_steps=100):
         if all(s != "burning" for s in status.values()):
             break
         status = update_fire(status, G, prob_spread)
-    return results, status, step + 1  
+    return burnt_fraction, status, step + 1
 
-fire_history, final_status, total_steps = simulate_fire(G, status, prob_spread)
+# 🔥 Simulação discreta (em rede)
+burnt_fraction_discrete, final_status, total_steps = simulate_fire(G, status, prob_spread)
 
+# 🌱 Simulação contínua (EDO)
+def logistic_fire(B, t, r):
+    return r * B * (1 - B)
+
+r = 1.5  # taxa de propagação ajustável
+B0 = 1 / (n * n)  # Começando com apenas um nó queimado
+t = np.linspace(0, total_steps, total_steps * 10)  # Mais pontos para curva suave
+
+B_t = odeint(logistic_fire, B0, t, args=(r,)).flatten()
+
+# 📊 Comparação gráfica
+plt.figure(figsize=(8, 5))
+plt.plot(np.arange(len(burnt_fraction_discrete)), burnt_fraction_discrete, 'o-', label='Simulação em Rede')
+plt.plot(t, B_t, '-', label='Modelo Diferencial (Logístico)')
+plt.xlabel("Tempo (etapas)")
+plt.ylabel("Proporção de área queimada")
+plt.title("Comparação: Simulação vs. Modelo Diferencial")
+plt.legend()
+plt.grid(True)
+plt.tight_layout()
+plt.show()
+
+# ℹ️ Informações finais
 total_burnt = sum(1 for s in final_status.values() if s == "burnt")
-
 final_colors = [color_map[final_status[node]] for node in G.nodes()]
 plt.figure(figsize=(8, 8))
 nx.draw(G, pos={node: node for node in G.nodes()},
@@ -64,4 +95,3 @@ plt.axis('off')
 plt.tight_layout()
 plt.savefig("estado_final_incendio.png", dpi=300)
 plt.show()
-
