@@ -4,7 +4,6 @@ import numpy as np
 import random
 from scipy.integrate import odeint
 
-# Parâmetros da simulação em rede
 n = 20
 prob_spread = 0.45
 initial_fire = [(n//2, n//2)]
@@ -15,9 +14,9 @@ for node in initial_fire:
     status[node] = "burning"
 
 color_map = {
-    "green": "#2ecc71",     # verde vivo (vegetação)
-    "burning": "#e74c3c",   # vermelho brilhante (fogo ativo)
-    "burnt": "#2c3e50"      # cinza escuro (área queimada)
+    "green": "#2ecc71",    
+    "burning": "#e74c3c",  
+    "burnt": "#2c3e50"     
 }
 
 
@@ -32,7 +31,7 @@ def update_fire(status, G, prob_spread):
     return new_status
 
 def simulate_fire(G, status, prob_spread, max_steps=100):
-    burnt_fraction = []  # Para comparar com EDO
+    burnt_fraction = [] 
     for step in range(max_steps):
         num_burnt = sum(1 for s in status.values() if s == "burnt")
         burnt_fraction.append(num_burnt / len(G.nodes()))
@@ -50,20 +49,17 @@ def simulate_fire(G, status, prob_spread, max_steps=100):
         status = update_fire(status, G, prob_spread)
     return burnt_fraction, status, step + 1
 
-# 🔥 Simulação discreta (em rede)
 burnt_fraction_discrete, final_status, total_steps = simulate_fire(G, status, prob_spread)
 
-# 🌱 Simulação contínua (EDO)
 def logistic_fire(B, t, r):
     return r * B * (1 - B)
 
-r = 1.5  # taxa de propagação ajustável
-B0 = 1 / (n * n)  # Começando com apenas um nó queimado
-t = np.linspace(0, total_steps, total_steps * 10)  # Mais pontos para curva suave
+r = 1.5 
+B0 = 1 / (n * n)  
+t = np.linspace(0, total_steps, total_steps * 10)  
 
 B_t = odeint(logistic_fire, B0, t, args=(r,)).flatten()
 
-# 📊 Comparação gráfica
 plt.figure(figsize=(8, 5))
 plt.plot(np.arange(len(burnt_fraction_discrete)), burnt_fraction_discrete, 'o-', label='Simulação em Rede')
 plt.plot(t, B_t, '-', label='Modelo Diferencial (Logístico)')
@@ -75,7 +71,6 @@ plt.grid(True)
 plt.tight_layout()
 plt.show()
 
-# ℹ️ Informações finais
 total_burnt = sum(1 for s in final_status.values() if s == "burnt")
 final_colors = [color_map[final_status[node]] for node in G.nodes()]
 plt.figure(figsize=(8, 8))
