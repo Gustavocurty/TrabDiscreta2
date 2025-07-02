@@ -5,7 +5,7 @@ import random
 from scipy.integrate import odeint
 
 n = 20
-prob_spread = 0.45
+prob_spread = 0.58 # prob 58%
 initial_fire = [(n//2, n//2)]
 
 G = nx.grid_2d_graph(n, n)
@@ -54,7 +54,7 @@ burnt_fraction_discrete, final_status, total_steps = simulate_fire(G, status, pr
 def logistic_fire(B, t, r):
     return r * B * (1 - B)
 
-r = 1.5 
+r = 0.56 
 B0 = 1 / (n * n)  
 t = np.linspace(0, total_steps, total_steps * 10)  
 
